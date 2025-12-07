@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/mohitvaishnav56/minor_project_voicy_backend#readme",
   "dependencies": {
+    "@google/genai": "^1.31.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
@@ -30,7 +31,9 @@
     "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.0.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.11"
   },
   "devDependencies": {
     "nodemon": "^3.1.11",

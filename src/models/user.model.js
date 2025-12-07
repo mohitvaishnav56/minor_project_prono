@@ -32,6 +32,10 @@ const userSchema = new Schema({
         type: String,
         required: [true, 'Password is required'],
     },
+    emailNotification: {
+        type: Boolean,
+        default: true
+    }
 }, {
     timestamps: true
 })
