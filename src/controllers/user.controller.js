@@ -30,16 +30,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (existedUser) throw new ApiError(409, "user already exists");
 
-    const avatar = await uploadOnImageKit(req?.files?.avatar[0]);
-
-    if (!avatar) throw new ApiError(400, "avatar file is required");
-
     const user = await User.create({
         fullName,
         email: email.toLowerCase(),
         password,
         userName: userName.toLowerCase(),
-        avatar: avatar.url,
     });
 
     const accessToken = access_Token({ userId: user._id });
@@ -126,6 +121,44 @@ const refreshAccess_Token = asyncHandler(async (req, res) => {
         );
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+    const { user, body } = req;
+
+    // 1. Initialize 'url' to undefined or the existing user's avatar
+    let avatarUrl = undefined;
+
+    // 2. Check if a new file was uploaded
+    if (req.file) {
+        // Assuming uploadOnImageKit returns an object with a 'url' property
+        const avatar = await uploadOnImageKit(req.file);
+        avatarUrl = avatar.url; // Assign the value to the variable defined outside the block
+    }
+
+    // 3. Build the update object dynamically
+    const updateFields = {
+        userName: body.userName,
+    };
+
+    // Only add the 'avatar' field to the update if a new URL was generated
+    if (avatarUrl) {
+        updateFields.avatar = avatarUrl;
+    }
+
+    // 4. Perform the update
+    const updatedUser = await User.findOneAndUpdate(
+        { _id: user._id }, // Use object for query if user is populated
+        { $set: updateFields },
+        { new: true, runValidators: true } // Options for returning the new document and running schema validators
+    ).select("-password");
+
+    // 5. Send a response back to the client
+    return res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+        user: updatedUser
+    });
+});
+
 
 export {
     registerUser,
@@ -133,5 +166,5 @@ export {
     getUserProfile,
     logoutUser,
     refreshAccess_Token,
-    
+    updateProfile
 };
