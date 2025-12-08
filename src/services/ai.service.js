@@ -24,8 +24,9 @@ export const generateChallenge = async () => {
         // 4. Parse the cleaned string into a JavaScript object
         challengeData = JSON.parse(jsonString);
 
-        console.log("Successfully generated and parsed challenge data:");
-        console.log(challengeData);
+        // console.log("Successfully generated and parsed challenge data:");
+        // console.log(challengeData);
+        return challengeData;
         
         // The challengeData object is now ready to be used, e.g., validated and stored in MongoDB
         // return challengeData; 

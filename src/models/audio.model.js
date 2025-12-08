@@ -17,8 +17,9 @@ const audioSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "User",
     }
-},{
+}, {
     timestamps: true
 })
+
 
 export const Audio = mongoose.model("Audio", audioSchema);

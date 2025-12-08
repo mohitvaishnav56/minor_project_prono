@@ -75,3 +75,5 @@ const messageStructure = (challengeTitle, challengeDescription, challengeDate, c
     </html>
     `;
 };
+
+export default messageStructure;

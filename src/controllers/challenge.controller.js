@@ -1,6 +1,10 @@
 // Install: npm install node-cron
 import cron from "node-cron";
 import { generateChallenge } from "../services/ai.service.js";
+import {fetchUsersToNotify} from "../services/fetchUsersToNotify.service.js";
+import email from "../services/email.service.js"
+
+
 const TWICE_DAILY_SCHEDULE = '* * * * *'; 
 
 const startChallengeScheduler = () => {
@@ -9,7 +13,9 @@ const startChallengeScheduler = () => {
         console.log('🤖 Running TWICE DAILY AI challenge generation...');
         
         try {
-            await generateChallenge(); 
+            const challengeData = await generateChallenge();
+            const users = await fetchUsersToNotify();
+            email(users);
             console.log('✅ Challenge successfully generated and saved.');
         } catch (error) {
             console.error('❌ Error during challenge generation:', error);
