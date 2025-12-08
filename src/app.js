@@ -1,6 +1,6 @@
 import express from "express"
 import cookieParser from "cookie-parser";
-// import cors from "cors";
+import cors from "cors";
 // import {startChallengeScheduler} from "./controllers/challenge.controller.js"
 // import {fetchUsersToNotify} from "./services/fetchUsersToNotify.service.js"
 
