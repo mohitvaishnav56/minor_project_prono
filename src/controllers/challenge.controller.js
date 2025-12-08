@@ -162,7 +162,12 @@ const getChallenge = async (req, res) => {
 
 const getAllChallenge = async (req, res) => {
   try {
-    return await Challenge.find();
+    const data = await Challenge.find();
+    res.status(201).json({
+      success : "true",
+      message : data
+    }) 
+
   } catch (error) {
     return res.status(500).json({
       success: false,
