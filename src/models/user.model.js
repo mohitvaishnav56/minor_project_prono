@@ -21,7 +21,6 @@ const userSchema = new Schema({
     fullName: {
         type: String,
         required: true,
-        unique: true,
         trim: true,
         index: true
     },
@@ -32,6 +31,10 @@ const userSchema = new Schema({
         type: String,
         required: [true, 'Password is required'],
     },
+    emailNotification: {
+        type: Boolean,
+        default: true
+    }
 }, {
     timestamps: true
 })

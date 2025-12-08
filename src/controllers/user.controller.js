@@ -65,7 +65,7 @@ const loginUser = asyncHandler(async (req, res) => {
     if ([userName, password].some((field) => field?.trim() === "")) {
         throw new ApiError(400, "All Fields are required");
     }
-    const user = await User.findOne({ userName: userName.toLowerCase() });
+    const user = await User.findOne({ userName: userName });
     if (!user) throw new ApiError(404, "user not found");
     //check for password correctness
     const isPasswordCorrect = await user.comparePassword(password);
