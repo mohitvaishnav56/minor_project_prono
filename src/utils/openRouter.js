@@ -1,37 +1,40 @@
-import { OpenRouter } from "@openrouter/sdk";
+import { ApiError } from "./ApiError.js";
 
-const openrouter = new OpenRouter({
-    apiKey: process.env.ROUTER_API_KEY
-});
+const openRouterAI = async (prompt) => {
+    try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.ROUTER_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                "model": "anthropic/claude-opus-4.5",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "stream": false,
+                "max_tokens": 2000
+            })
+        });
 
-const openRouterAI = async () => {
-    // Stream the response to get reasoning tokens in usage
-    const stream = await openrouter.chat.send({
-        model: "google/gemini-3-pro-preview",
-        messages: [
-            {
-                role: "user",
-                content: "How many r's are in the word 'strawberry'?"
-            }
-        ],
-        stream: true,
-        streamOptions: {
-            includeUsage: true
-        }
-    });
-
-    let response = "";
-    for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
-        if (content) {
-            response += content;
-            process.stdout.write(content);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new ApiError(response.status, `OpenRouter API Error: ${errorText}`);
         }
 
-        // Usage information comes in the final chunk
-        if (chunk.usage) {
-            console.log("\nReasoning tokens:", chunk.usage.reasoningTokens);
-        }
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content || "";
+
+        return content;
+
+    } catch (error) {
+        console.error("OpenRouter Request Failed:", error);
+        throw error;
     }
-    return response;
 }
+
+export default openRouterAI;

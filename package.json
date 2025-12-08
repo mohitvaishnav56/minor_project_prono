@@ -22,6 +22,7 @@
   "homepage": "https://github.com/mohitvaishnav56/minor_project_voicy_backend#readme",
   "dependencies": {
     "@google/genai": "^1.31.0",
+    "@openrouter/sdk": "^0.2.9",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",

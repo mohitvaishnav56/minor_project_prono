@@ -1,7 +1,7 @@
 /* Note: This is a function that returns the HTML string, 
    ready to be plugged into the 'html' field of your Nodemailer options.
 */
-const messageStructure = (challengeTitle, challengeDescription, challengeDate, challengeLink) => {
+const messageStructure = (challengeTitle, challengeDescription, challengeDate, challengeLink="") => {
     
     // Define the colors from your UI image:
     const primaryGreen = '#4CAF50'; // For the 'SPEAK • INSPIRE • TRANSFORM' bar
@@ -49,7 +49,7 @@ const messageStructure = (challengeTitle, challengeDescription, challengeDate, c
                                 <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                     <tr>
                                         <td align="right" style="padding: 0;">
-                                            <a href="${challengeLink}" target="_blank" style="display: inline-block; padding: 10px 20px; font-size: 14px; font-weight: bold; color: ${lightText}; background-color: ${primaryGreen}; border-radius: 4px; text-decoration: none;">
+                                            <a href="https://youtu.be/_EfZAOjo69U?si=vgc3SVYvZh4GNq7w" target="_blank" style="display: inline-block; padding: 10px 20px; font-size: 14px; font-weight: bold; color: ${lightText}; background-color: ${primaryGreen}; border-radius: 4px; text-decoration: none;">
                                                 Accept Challenge →
                                             </a>
                                         </td>
