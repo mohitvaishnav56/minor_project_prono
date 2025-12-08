@@ -7,7 +7,7 @@ import Challenge from "../models/challenge.model.js";
 import { ApiError } from '../utils/ApiError.js';
 
 
-const TWICE_DAILY_SCHEDULE = '26 15,21 * * *';
+const TWICE_DAILY_SCHEDULE = '0 9,17 * * *';
 
 const startChallengeScheduler = () => {
     // This will run approximately at 9:00 AM and 9:00 PM (or 12 hours apart from server start time) 
