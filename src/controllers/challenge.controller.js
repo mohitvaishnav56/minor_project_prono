@@ -5,6 +5,7 @@ import { fetchUsersToNotify } from "../services/fetchUsersToNotify.service.js";
 import email from "../services/email.service.js";
 import Challenge from "../models/challenge.model.js";
 import { ApiError } from "../utils/ApiError.js";
+import { messageContentToJSON } from "@openrouter/sdk/models";
 
 const TWICE_DAILY_SCHEDULE = "26 15,21 * * *"; // keep same cron string as you wrote
 
@@ -113,20 +114,20 @@ const getChallenge = async (req, res) => {
     const hour = now.getHours();
 
     // 🔹 Day shift → today 09:00–17:00
-    if (hour >= 9 && hour < 17) {
+    if (hour >= 9 && hour < 18) {
       windowStart.setHours(9, 0, 0, 0);
-      windowEnd.setHours(17, 0, 0, 0);
+      windowEnd.setHours(18, 0, 0, 0);
 
       // 🔹 Night shift (today 17:00 → tomorrow 09:00)
-    } else if (hour >= 17) {
-      windowStart.setHours(17, 0, 0, 0);
+    } else if (hour >= 18) {
+      windowStart.setHours(18, 0, 0, 0);
       windowEnd.setDate(windowEnd.getDate() + 1);
       windowEnd.setHours(9, 0, 0, 0);
 
       // 🔹 Night shift (yesterday 17:00 → today 09:00)
     } else {
       windowStart.setDate(windowStart.getDate() - 1);
-      windowStart.setHours(17, 0, 0, 0);
+      windowStart.setHours(18, 0, 0, 0);
       windowEnd.setHours(9, 0, 0, 0);
     }
 
@@ -159,4 +160,15 @@ const getChallenge = async (req, res) => {
   }
 };
 
-export { startChallengeScheduler, getChallenge };
+const getAllChallenge = async (req, res) => {
+  try {
+    return await Challenge.find();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export { startChallengeScheduler, getChallenge, getAllChallenge };

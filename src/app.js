@@ -19,8 +19,10 @@ startChallengeScheduler();
 // fetchUsersToNotify()
 
 import userRouter from "./routes/user.routes.js"
+import challengeRouter from "./routes/challenge.routes.js"
 
 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/challenge", challengeRouter)
 
 export default app;
