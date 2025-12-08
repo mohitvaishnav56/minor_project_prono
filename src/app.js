@@ -1,8 +1,8 @@
 import express from "express"
 import cookieParser from "cookie-parser";
-import cors from "cors";
-import {startChallengeScheduler} from "./controllers/challenge.controller.js"
-import {fetchUsersToNotify} from "./services/fetchUsersToNotify.service.js"
+// import cors from "cors";
+// import {startChallengeScheduler} from "./controllers/challenge.controller.js"
+// import {fetchUsersToNotify} from "./services/fetchUsersToNotify.service.js"
 
 const app = express();
 
@@ -15,8 +15,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));//ur encoding ke liye use kiya jaata hai eg: space -> %20 or something
 app.use(express.static("public"));
 
-startChallengeScheduler();
-fetchUsersToNotify()
+// startChallengeScheduler();
+// fetchUsersToNotify()
 
 import userRouter from "./routes/user.routes.js"
 
