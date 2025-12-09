@@ -178,4 +178,4 @@ const getAllChallenge = async (req, res) => {
 };
 
 
-export { startChallengeScheduler, getChallenge, getAllChallenge };git 
+export { startChallengeScheduler, getChallenge, getAllChallenge };
