@@ -7,7 +7,7 @@ import Challenge from "../models/challenge.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { messageContentToJSON } from "@openrouter/sdk/models";
 
-const TWICE_DAILY_SCHEDULE = "26 15,21 * * *"; // keep same cron string as you wrote
+const TWICE_DAILY_SCHEDULE = "57 9,21 * * *"; // keep same cron string as you wrote
 
 const startChallengeScheduler = () => {
   // Runs based on cron expression, now correctly in Asia/Kolkata timezone
@@ -162,7 +162,12 @@ const getChallenge = async (req, res) => {
 
 const getAllChallenge = async (req, res) => {
   try {
-    return await Challenge.find();
+    const challenges = await Challenge.find();
+
+    return res.status(200).json({
+      success: true,
+      data: challenges,
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -170,5 +175,6 @@ const getAllChallenge = async (req, res) => {
     });
   }
 };
+
 
 export { startChallengeScheduler, getChallenge, getAllChallenge };

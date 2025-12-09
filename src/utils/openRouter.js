@@ -9,7 +9,7 @@ const openRouterAI = async (prompt) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                "model": "anthropic/claude-opus-4.5",
+                "model": "openai/gpt-5.1-codex-max",
                 "messages": [
                     {
                         "role": "user",

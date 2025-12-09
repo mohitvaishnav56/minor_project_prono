@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.use(verifyJWT);
 
-router.get('/get-challenge/:id', getChallenge);
-router.get('/getAll-challenge', getAllChallenge);
+router.get('/get-challenge/', getChallenge);
+router.get('/get-all-challenges', getAllChallenge);
 
 export default router;
