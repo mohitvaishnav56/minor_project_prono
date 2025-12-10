@@ -15,6 +15,8 @@ const transporter = nodeMailer.createTransport({
     },
     connectionTimeout: 60000, // 60 seconds
     family: 4, // Force IPv4 to avoid IPv6 timeout issues
+    debug: true, // Enable debug output
+    logger: true // Log information to console
 })
 
 export default transporter;
