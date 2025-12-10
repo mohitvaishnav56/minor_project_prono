@@ -5,7 +5,7 @@ import app from "./src/app.js";
 import { startChallengeScheduler } from "./src/controllers/challenge.controller.js";
 
 connectDB();
-startChallengeScheduler();
+// startChallengeScheduler(); // Disabled in favor of external cron trigger via /api/v1/challenge/trigger
 
 const PORT = process.env.PORT || 3000;
 
