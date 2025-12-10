@@ -15,10 +15,14 @@ const sendEmail = async (to, subject, text, html) => {
     try {
         const msg = {
             to,
-            from: process.env.SENDGRID_FROM_EMAIL, // Must be Verified Sender on SendGrid
+            from: {
+                email: process.env.SENDGRID_FROM_EMAIL,
+                name: "Voicy Challenge Bot" 
+            },
             subject,
             text,
             html,
+            isMultiple: Array.isArray(to) && to.length > 1, // Sends individually to each recipient if it's an array
         };
 
         const response = await sgMail.send(msg);
