@@ -8,7 +8,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { messageContentToJSON } from "@openrouter/sdk/models";
 
 
-const TWICE_DAILY_SCHEDULE = '50 9,18 * * *';
+const TWICE_DAILY_SCHEDULE = '0 9,18,20 * * *';
 
 // Function to generate and store challenge - decoupled from cron
 const generateAndStoreChallenge = async () => {
