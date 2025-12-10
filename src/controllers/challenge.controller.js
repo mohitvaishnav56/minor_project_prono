@@ -52,22 +52,27 @@ const generateAndStoreChallenge = async () => {
       savedChallenge._id
     );
 
-    const userEmails = await fetchUsersToNotify();
+    try {
+      const userEmails = await fetchUsersToNotify();
 
-    if (Array.isArray(userEmails) && userEmails.length > 0) {
-      await email(
-        userEmails,
-        savedChallenge.title,
-        savedChallenge.description,
-        savedChallenge.scheduled_at.toDateString(),
-        `https://your-app-url.com/challenges/${savedChallenge.challengeId}`
-      );
+      if (Array.isArray(userEmails) && userEmails.length > 0) {
+        await email(
+          userEmails,
+          savedChallenge.title,
+          savedChallenge.description,
+          savedChallenge.scheduled_at.toDateString(),
+          `https://your-app-url.com/challenges/${savedChallenge.challengeId}`
+        );
 
-      console.log(
-        `📧 Email notifications sent to ${userEmails.length} users.`
-      );
-    } else {
-      console.log("ℹ️ No users opted in for notifications.");
+        console.log(
+          `📧 Email notifications sent to ${userEmails.length} users.`
+        );
+      } else {
+        console.log("ℹ️ No users opted in for notifications.");
+      }
+    } catch (emailError) {
+      console.error("⚠️ Challenge generated, but failed to send emails:", emailError.message);
+      // We do NOT re-throw here because the main task (challenge generation) succeeded.
     }
 
     return { success: true, message: "Challenge generated and emails sent.", challengeId: savedChallenge.challengeId };
