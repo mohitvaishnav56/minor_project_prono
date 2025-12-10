@@ -5,15 +5,24 @@ import { verifyJWT } from "../middlewares/auth.middleware.js"
 const router = express.Router();
 
 // Public route protected by Secret Key (for Cron Jobs)
-router.post('/trigger', async (req, res) => {
+router.post('/trigger', (req, res) => {
     try {
         const secret = req.headers['x-cron-secret'];
         if (secret !== process.env.CRON_SECRET) {
             return res.status(401).json({ success: false, message: "Unauthorized: Invalid Cron Secret" });
         }
 
-        const result = await generateAndStoreChallenge();
-        return res.status(200).json(result);
+        // Start the process in the background (fire and forget pattern)
+        // We don't await this because Render cold starts + AI generation takes > 30s, causing getting timeouts.
+        generateAndStoreChallenge()
+            .then(result => console.log("Background Trigger Success:", result))
+            .catch(err => console.error("Background Trigger Failed:", err));
+
+        // Return success immediately to satisfied the cron service
+        return res.status(202).json({
+            success: true,
+            message: "Trigger received. Challenge generation started in background."
+        });
 
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
