@@ -13,7 +13,8 @@ const transporter = nodeMailer.createTransport({
         // Do not fail on invalid certs
         rejectUnauthorized: false
     },
-    connectionTimeout: 10000, // 10 seconds
+    connectionTimeout: 60000, // 60 seconds
+    family: 4, // Force IPv4 to avoid IPv6 timeout issues
 })
 
 export default transporter;
