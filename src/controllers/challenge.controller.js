@@ -8,91 +8,100 @@ import { ApiError } from "../utils/ApiError.js";
 import { messageContentToJSON } from "@openrouter/sdk/models";
 
 
-const TWICE_DAILY_SCHEDULE = '0 9,18 * * *';
+const TWICE_DAILY_SCHEDULE = '50 9,18 * * *';
+
+// Function to generate and store challenge - decoupled from cron
+const generateAndStoreChallenge = async () => {
+  console.log("🤖 Running AI challenge generation (Manual/Scheduled)...");
+
+  try {
+    const challengeData = await generateChallenge();
+
+    if (!challengeData) {
+      console.error("❌ Challenge generation failed (fetched null).");
+      return { success: false, message: "Challenge generation failed (fetched null)." };
+    }
+
+    const now = new Date();
+
+    // Normalize duration (supports both flat & object structures)
+    let { duration_min, duration_max, duration } = challengeData;
+
+    if (!duration_min || !duration_max) {
+      if (duration && typeof duration === "object") {
+        duration_min = duration.min;
+        duration_max = duration.max;
+      }
+    }
+
+    const newChallenge = new Challenge({
+      ...challengeData,
+      duration_min,
+      duration_max,
+      challengeId: `CHLG-${now
+        .toISOString()
+        .split("T")[0]
+        .replace(/-/g, "")}-${Date.now().toString().slice(-4)}`,
+      scheduled_at: now,
+      status: "pending",
+    });
+
+    const savedChallenge = await newChallenge.save();
+    console.log(
+      "✅ Challenge successfully generated and saved:",
+      savedChallenge._id
+    );
+
+    const userEmails = await fetchUsersToNotify();
+
+    if (Array.isArray(userEmails) && userEmails.length > 0) {
+      await email(
+        userEmails,
+        savedChallenge.title,
+        savedChallenge.description,
+        savedChallenge.scheduled_at.toDateString(),
+        `https://your-app-url.com/challenges/${savedChallenge.challengeId}`
+      );
+
+      console.log(
+        `📧 Email notifications sent to ${userEmails.length} users.`
+      );
+    } else {
+      console.log("ℹ️ No users opted in for notifications.");
+    }
+
+    return { success: true, message: "Challenge generated and emails sent.", challengeId: savedChallenge.challengeId };
+
+  } catch (error) {
+    if (error instanceof ApiError) {
+      console.error(`❌ ApiError [${error.statusCode}]: ${error.message}`);
+      if (error.errors?.length) {
+        console.error("   Details:", error.errors);
+      }
+    } else {
+      console.error(
+        "❌ Unexpected Error during challenge generation/storage/email:",
+        error
+      );
+    }
+    throw error; // Re-throw so the caller knows it failed
+  }
+};
 
 const startChallengeScheduler = () => {
   // Runs based on cron expression, now correctly in Asia/Kolkata timezone
   cron.schedule(
     TWICE_DAILY_SCHEDULE,
     async () => {
-      console.log("🤖 Running TWICE DAILY AI challenge generation...");
-
-      try {
-        const challengeData = await generateChallenge();
-
-        if (!challengeData) {
-          console.error("❌ Challenge generation failed (fetched null).");
-          return;
-        }
-
-        const now = new Date();
-
-        // Normalize duration (supports both flat & object structures)
-        let { duration_min, duration_max, duration } = challengeData;
-
-        if (!duration_min || !duration_max) {
-          if (duration && typeof duration === "object") {
-            duration_min = duration.min;
-            duration_max = duration.max;
-          }
-        }
-
-        const newChallenge = new Challenge({
-          ...challengeData,
-          duration_min,
-          duration_max,
-          challengeId: `CHLG-${now
-            .toISOString()
-            .split("T")[0]
-            .replace(/-/g, "")}-${Date.now().toString().slice(-4)}`,
-          scheduled_at: now,
-          status: "pending", // as per your logic
-        });
-
-        const savedChallenge = await newChallenge.save();
-        console.log(
-          "✅ Challenge successfully generated and saved:",
-          savedChallenge._id
-        );
-
-        const userEmails = await fetchUsersToNotify();
-
-        if (Array.isArray(userEmails) && userEmails.length > 0) {
-          await email(
-            userEmails,
-            savedChallenge.title,
-            savedChallenge.description,
-            savedChallenge.scheduled_at.toDateString(),
-            `https://your-app-url.com/challenges/${savedChallenge.challengeId}`
-          );
-
-          console.log(
-            `📧 Email notifications sent to ${userEmails.length} users.`
-          );
-        } else {
-          console.log("ℹ️ No users opted in for notifications.");
-        }
-      } catch (error) {
-        if (error instanceof ApiError) {
-          console.error(`❌ ApiError [${error.statusCode}]: ${error.message}`);
-          if (error.errors?.length) {
-            console.error("   Details:", error.errors);
-          }
-        } else {
-          console.error(
-            "❌ Unexpected Error during challenge generation/storage/email:",
-            error
-          );
-        }
-      }
+      await generateAndStoreChallenge();
     },
     {
-      timezone: "Asia/Kolkata", // matches your comment in log
+      timezone: "Asia/Kolkata",
     }
   );
 
   console.log(
-    "Challenge scheduler initialized. Runs are scheduled every 12 hours (e.g., 9:00 AM and 9:00 PM) in Asia/Kolkata timezone."
+    "Challenge scheduler initialized. Runs are scheduled every 12 hours (e.g., 9:30 AM and 9:30 PM) in Asia/Kolkata timezone."
   );
 };
 
@@ -178,4 +187,4 @@ const getAllChallenge = async (req, res) => {
 };
 
 
-export { startChallengeScheduler, getChallenge, getAllChallenge };
+export { startChallengeScheduler, getChallenge, getAllChallenge, generateAndStoreChallenge };
