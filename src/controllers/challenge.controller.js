@@ -7,56 +7,62 @@ import Challenge from "../models/challenge.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { messageContentToJSON } from "@openrouter/sdk/models";
 
-
-const TWICE_DAILY_SCHEDULE = '0 9,18,20 * * *';
+const TWICE_DAILY_SCHEDULE = '5 * * * *';
 
 // Function to generate and store challenge - decoupled from cron
+// Put this in your controllers/challenge.controller.js (replace old function)
+let isRunning = false;
+
 const generateAndStoreChallenge = async () => {
-  console.log("🤖 Running AI challenge generation (Manual/Scheduled)...");
+  if (isRunning) {
+    console.warn("⚠️ generateAndStoreChallenge is already running — skipping this invocation.");
+    return { success: false, message: "Already running" };
+  }
+
+  isRunning = true;
+  const startTs = new Date();
+  console.log("🤖 [START] AI challenge generation at", startTs.toISOString());
 
   try {
     const challengeData = await generateChallenge();
+    console.log("→ challengeData fetched:", !!challengeData);
 
     if (!challengeData) {
-      console.error("❌ Challenge generation failed (fetched null).");
-      return { success: false, message: "Challenge generation failed (fetched null)." };
+      console.error("❌ Challenge generation returned null");
+      isRunning = false;
+      return { success: false, message: "Challenge generation failed (null)" };
     }
 
     const now = new Date();
 
-    // Normalize duration (supports both flat & object structures)
+    // Normalize duration
     let { duration_min, duration_max, duration } = challengeData;
-
-    if (!duration_min || !duration_max) {
-      if (duration && typeof duration === "object") {
-        duration_min = duration.min;
-        duration_max = duration.max;
-      }
+    if ((!duration_min || !duration_max) && duration && typeof duration === "object") {
+      duration_min = duration.min;
+      duration_max = duration.max;
     }
 
+    // Create & save challenge (ensure savedChallenge is defined)
     const newChallenge = new Challenge({
       ...challengeData,
       duration_min,
       duration_max,
-      challengeId: `CHLG-${now
-        .toISOString()
-        .split("T")[0]
-        .replace(/-/g, "")}-${Date.now().toString().slice(-4)}`,
+      challengeId: `CHLG-${now.toISOString().split("T")[0].replace(/-/g, "")}-${Date.now().toString().slice(-4)}`,
       scheduled_at: now,
       status: "pending",
     });
 
     const savedChallenge = await newChallenge.save();
-    console.log(
-      "✅ Challenge successfully generated and saved:",
-      savedChallenge._id
-    );
+    console.log(`✅ Saved challenge ${savedChallenge._id} at ${savedChallenge.scheduled_at.toISOString()}`);
 
+    // Notify users
     try {
       const userEmails = await fetchUsersToNotify();
+      console.log("→ fetchUsersToNotify returned count:", Array.isArray(userEmails) ? userEmails.length : typeof userEmails);
 
       if (Array.isArray(userEmails) && userEmails.length > 0) {
-        await email(
+        // Build html via your messageStructure inside email service or pass params as before
+        const sendResult = await email(
           userEmails,
           savedChallenge.title,
           savedChallenge.description,
@@ -64,51 +70,40 @@ const generateAndStoreChallenge = async () => {
           `https://your-app-url.com/challenges/${savedChallenge.challengeId}`
         );
 
-        console.log(
-          `📧 Email notifications sent to ${userEmails.length} users.`
-        );
+        console.log("📧 send email result:", sendResult);
       } else {
-        console.log("ℹ️ No users opted in for notifications.");
+        console.log("ℹ️ No users to notify");
       }
     } catch (emailError) {
-      console.error("⚠️ Challenge generated, but failed to send emails:", emailError.message);
-      // We do NOT re-throw here because the main task (challenge generation) succeeded.
+      console.error("⚠️ Email send failed:", emailError && (emailError.message || emailError.toString()));
     }
 
-    return { success: true, message: "Challenge generated and emails sent.", challengeId: savedChallenge.challengeId };
-
+    console.log("🤖 [END] AI generation finished at", new Date().toISOString(), "duration(ms):", Date.now() - startTs.getTime());
+    isRunning = false;
+    return { success: true, challengeId: savedChallenge.challengeId };
   } catch (error) {
-    if (error instanceof ApiError) {
-      console.error(`❌ ApiError [${error.statusCode}]: ${error.message}`);
-      if (error.errors?.length) {
-        console.error("   Details:", error.errors);
-      }
-    } else {
-      console.error(
-        "❌ Unexpected Error during challenge generation/storage/email:",
-        error
-      );
-    }
-    throw error; // Re-throw so the caller knows it failed
+    console.error("❌ generateAndStoreChallenge unexpected error:", error && (error.message || error.toString()));
+    isRunning = false;
+    throw error;
   }
 };
 
-const startChallengeScheduler = () => {
-  // Runs based on cron expression, now correctly in Asia/Kolkata timezone
-  cron.schedule(
-    TWICE_DAILY_SCHEDULE,
-    async () => {
-      await generateAndStoreChallenge();
-    },
-    {
-      timezone: "Asia/Kolkata",
-    }
-  );
+// const startChallengeScheduler = () => {
+//   // Runs based on cron expression, now correctly in Asia/Kolkata timezone
+//   cron.schedule(
+//     TWICE_DAILY_SCHEDULE,
+//     async () => {
+//       await generateAndStoreChallenge();
+//     },
+//     {
+//       timezone: "Asia/Kolkata",
+//     }
+//   );
 
-  console.log(
-    "Challenge scheduler initialized. Runs are scheduled every 12 hours (e.g., 9:30 AM and 9:30 PM) in Asia/Kolkata timezone."
-  );
-};
+//   console.log(
+//     "Challenge scheduler initialized. Runs are scheduled every 12 hours (e.g., 9:30 AM and 9:30 PM) in Asia/Kolkata timezone."
+//   );
+// };
 
 // --------------------------------------------------------
 //  Two schedules: 09:00–17:00 and 17:00–09:00 (next day)
@@ -192,4 +187,4 @@ const getAllChallenge = async (req, res) => {
 };
 
 
-export { startChallengeScheduler, getChallenge, getAllChallenge, generateAndStoreChallenge };
+export { getChallenge, getAllChallenge, generateAndStoreChallenge };

@@ -1,11 +1,10 @@
 // services/email.service.js
-import { sendViaSendGrid } from "../utils/sendgrid.js";
 import { createGmailTransporter, sendViaNodemailer } from "../utils/nodemailer.js";
 import messageStructure from "../prompts/messageStructure.js";
 
 /**
- * email wrapper to match your previous usage:
  * email(userEmails, challengeTitle, challengeDescription, challengeDate, challengeLink)
+ * Uses only Nodemailer (Gmail). Sends individual emails to each recipient for privacy.
  */
 const email = async (userEmails, challengeTitle = "sample", challengeDescription = "xyz", challengeDate = new Date().toDateString(), challengeLink = "https://example.com") => {
   const recipients = Array.isArray(userEmails) ? userEmails : [userEmails];
@@ -17,40 +16,37 @@ const email = async (userEmails, challengeTitle = "sample", challengeDescription
     challengeLink
   );
 
-  const textContent = `Hey! A new challenge, "${challengeTitle}", is live. Check your app: ${challengeLink}`;
+  const textContent = `Hey! A new challenge, "${challengeTitle}", is live. Check: ${challengeLink}`;
 
-  const logError = (tag, err) => {
-    console.error(`❌ [${tag}]`, err && err.message ? err.message : err);
-    if (err && err.response && err.response.body) {
-      console.error("   Response body:", err.response.body);
-    } else if (err && err.stack) {
-      console.error(err.stack);
-    }
-  };
-
-  // Try SendGrid
-  try {
-    const resp = await sendViaSendGrid(recipients, `📢 New Challenge: ${challengeTitle} is Live!`, textContent, htmlContent);
-    console.log("✅ Email sent via SendGrid:", resp?.[0]?.statusCode || "ok");
-    return { provider: "sendgrid", result: resp };
-  } catch (err) {
-    logError("SendGrid Error", err);
-  }
-
-  // Fallback Nodemailer
   const transporter = createGmailTransporter();
   if (!transporter) {
-    const errMsg = "No email provider available: SendGrid not configured or failed, and Nodemailer creds missing.";
-    console.error("❌", errMsg);
-    throw new Error(errMsg);
+    throw new Error("Nodemailer transporter not configured. Set NODEMAILER_EMAIL and NODEMAILER_PASSWORD (App Password).");
   }
 
   try {
-    const info = await sendViaNodemailer(transporter, recipients, `📢 New Challenge: ${challengeTitle} is Live!`, textContent, htmlContent);
-    console.log("✅ Email sent via Nodemailer (Gmail):", info?.messageId || info);
-    return { provider: "nodemailer", result: info };
+    // Try to send. If 465 fails because of network, attempt 587 fallback.
+    try {
+      const result = await sendViaNodemailer(transporter, recipients, `📢 New Challenge: ${challengeTitle} is Live!`, textContent, htmlContent);
+      console.log("✅ Emails sent via Nodemailer (primary transporter).", result);
+      return { provider: "nodemailer", result };
+    } catch (errPrimary) {
+      console.warn("⚠️ Primary Nodemailer send failed, trying fallback (587).", errPrimary && errPrimary.message);
+      // Create fallback transporter (STARTTLS on 587)
+      const fallback = nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.NODEMAILER_EMAIL,
+          pass: process.env.NODEMAILER_PASSWORD
+        }
+      });
+      const result2 = await sendViaNodemailer(fallback, recipients, `📢 New Challenge: ${challengeTitle} is Live!`, textContent, htmlContent);
+      console.log("✅ Emails sent via Nodemailer (fallback 587).", result2);
+      return { provider: "nodemailer-fallback", result: result2 };
+    }
   } catch (err) {
-    logError("Nodemailer Error", err);
+    console.error("❌ Nodemailer final error:", err && (err.message || err.toString()));
     throw err;
   }
 };
