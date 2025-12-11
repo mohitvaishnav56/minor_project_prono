@@ -41,3 +41,16 @@ export const deleteFromImageKit = async (fileId) => {
         );
     });
 };
+
+export const uploadAudioToImageKit = async (buffer, filename, folder = "prono/audio-submissions") => {
+  const base64 = buffer.toString("base64");
+  const fileBase64 = `data:audio/mpeg;base64,${base64}`; // mime type generic; ImageKit accepts data URI
+
+  const resp = await ImageKit.upload({
+    file: fileBase64,
+    fileName: filename,
+    folder,
+  });
+
+  return resp; // contains url, fileId, etc.
+};

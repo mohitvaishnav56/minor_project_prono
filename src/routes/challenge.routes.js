@@ -12,8 +12,6 @@ router.post('/trigger', (req, res) => {
             return res.status(401).json({ success: false, message: "Unauthorized: Invalid Cron Secret" });
         }
 
-        // Start the process in the background (fire and forget pattern)
-        // We don't await this because Render cold starts + AI generation takes > 30s, causing getting timeouts.
         generateAndStoreChallenge()
             .then(result => console.log("Background Trigger Success:", result))
             .catch(err => console.error("Background Trigger Failed:", err));
@@ -31,7 +29,7 @@ router.post('/trigger', (req, res) => {
 
 router.use(verifyJWT);
 
-router.get('/get-challenge/', getChallenge);
+router.get('/get-challenge', getChallenge);
 router.get('/get-all-challenges', getAllChallenge);
 
 export default router;

@@ -1,4 +1,4 @@
-// Install: npm install node-cron
+// controllers/challenge.controller.js
 import cron from "node-cron";
 import { generateChallenge } from "../services/ai.service.js";
 import { fetchUsersToNotify } from "../services/fetchUsersToNotify.service.js";
@@ -6,13 +6,54 @@ import email from "../services/email.service.js";
 import Challenge from "../models/challenge.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { messageContentToJSON } from "@openrouter/sdk/models";
+import nodemailer from "nodemailer"; // only if email.service needs it; keep harmless
 
-const TWICE_DAILY_SCHEDULE = '5 * * * *';
+// Default twice-daily schedule (09:30 & 21:30 IST)
+const TWICE_DAILY_SCHEDULE = "30 9,15,21 * * *";
 
-// Function to generate and store challenge - decoupled from cron
-// Put this in your controllers/challenge.controller.js (replace old function)
 let isRunning = false;
 
+/**
+ * One-time run scheduler.
+ * @param {Date} runAt - exact Date object in server local timezone (we assume server timezone is IST via cron options)
+ */
+const scheduleOneTimeRun = (runAt) => {
+  const now = new Date();
+  const ms = runAt.getTime() - now.getTime();
+  if (ms <= 0) {
+    console.warn("scheduleOneTimeRun: requested time is in the past. Running immediately.");
+    generateAndStoreChallenge().catch(err => console.error("One-time run immediate error:", err));
+    return;
+  }
+
+  console.log(`One-time challenge scheduled at ${runAt.toISOString()} (in ${Math.round(ms/1000)}s)`);
+
+  setTimeout(() => {
+    console.log("One-time scheduled invocation triggered:", new Date().toISOString());
+    generateAndStoreChallenge().catch(err => console.error("One-time run error:", err));
+  }, ms);
+};
+
+/**
+ * Convenience: schedule a one-time run for TODAY at given hour & minute (24h).
+ * If that time already passed, it will schedule for TOMORROW at that time.
+ * @param {number} hour
+ * @param {number} minute
+ */
+const scheduleRunForToday = (hour, minute) => {
+  const now = new Date();
+  const runAt = new Date(now);
+  runAt.setHours(hour, minute, 0, 0);
+
+  // If already passed today, schedule for tomorrow
+  if (runAt.getTime() <= now.getTime()) {
+    runAt.setDate(runAt.getDate() + 1);
+  }
+
+  scheduleOneTimeRun(runAt);
+};
+
+// Main generation function (with lock)
 const generateAndStoreChallenge = async () => {
   if (isRunning) {
     console.warn("⚠️ generateAndStoreChallenge is already running — skipping this invocation.");
@@ -61,7 +102,6 @@ const generateAndStoreChallenge = async () => {
       console.log("→ fetchUsersToNotify returned count:", Array.isArray(userEmails) ? userEmails.length : typeof userEmails);
 
       if (Array.isArray(userEmails) && userEmails.length > 0) {
-        // Build html via your messageStructure inside email service or pass params as before
         const sendResult = await email(
           userEmails,
           savedChallenge.title,
@@ -88,27 +128,20 @@ const generateAndStoreChallenge = async () => {
   }
 };
 
-// const startChallengeScheduler = () => {
-//   // Runs based on cron expression, now correctly in Asia/Kolkata timezone
-//   cron.schedule(
-//     TWICE_DAILY_SCHEDULE,
-//     async () => {
-//       await generateAndStoreChallenge();
-//     },
-//     {
-//       timezone: "Asia/Kolkata",
-//     }
-//   );
+const startChallengeScheduler = () => {
+  // Cron for recurring runs
+  cron.schedule(
+    TWICE_DAILY_SCHEDULE,
+    async () => {
+      await generateAndStoreChallenge();
+    },
+    {
+      timezone: "Asia/Kolkata",
+    }
+  );
 
-//   console.log(
-//     "Challenge scheduler initialized. Runs are scheduled every 12 hours (e.g., 9:30 AM and 9:30 PM) in Asia/Kolkata timezone."
-//   );
-// };
-
-// --------------------------------------------------------
-//  Two schedules: 09:00–17:00 and 17:00–09:00 (next day)
-//  Always returns ONLY ONE challenge in the active window
-// --------------------------------------------------------
+  console.log("Challenge scheduler initialized. Recurring schedule:", TWICE_DAILY_SCHEDULE, "(Asia/Kolkata)");
+};
 
 const getChallenge = async (req, res) => {
   try {
@@ -147,8 +180,8 @@ const getChallenge = async (req, res) => {
         $lt: windowEnd,
       },
     })
-      .sort({ scheduled_at: 1 }) // earliest in window if somehow multiple
-      .lean(); // small optimization, returns plain JS object
+      .sort({ scheduled_at: 1 })
+      .lean();
 
     if (!challenge) {
       return res.status(404).json({
@@ -186,5 +219,11 @@ const getAllChallenge = async (req, res) => {
   }
 };
 
-
-export { getChallenge, getAllChallenge, generateAndStoreChallenge };
+export {
+  startChallengeScheduler,
+  getChallenge,
+  getAllChallenge,
+  generateAndStoreChallenge,
+  scheduleOneTimeRun,
+  scheduleRunForToday,
+};
