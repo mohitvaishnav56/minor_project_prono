@@ -1,41 +1,38 @@
-import sgMail from '@sendgrid/mail';
+// utils/sendgrid.util.js
+import sgMail from "@sendgrid/mail";
 
-// Set API Key from Environment
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const SENDGRID_KEY = process.env.SENDGRID_API_KEY;
+const SENDGRID_FROM = process.env.SENDGRID_FROM_EMAIL || process.env.SENDGRID_FROM;
+
+if (SENDGRID_KEY) {
+  sgMail.setApiKey(SENDGRID_KEY);
+} else {
+  console.warn("⚠️ SENDGRID_API_KEY not set — SendGrid disabled.");
+}
 
 /**
- * Sends an email using SendGrid
- * @param {string|Array} to - Recipient email(s)
- * @param {string} subject - Email subject
- * @param {string} text - Plain text body
- * @param {string} html - HTML body
- * @returns {Promise}
+ * Send via SendGrid. Throws on error.
+ * @param {string[]} toArray
+ * @param {string} subject
+ * @param {string} text
+ * @param {string} html
  */
-const sendEmail = async (to, subject, text, html) => {
-    try {
-        const msg = {
-            to,
-            from: {
-                email: process.env.SENDGRID_FROM_EMAIL,
-                name: "Voicy Challenge Bot" 
-            },
-            subject,
-            text,
-            html,
-            isMultiple: Array.isArray(to) && to.length > 1, // Sends individually to each recipient if it's an array
-        };
+export const sendViaSendGrid = async (toArray, subject, text, html) => {
+  if (!SENDGRID_KEY || !SENDGRID_FROM) {
+    throw new Error("SendGrid not configured (missing API key or from email).");
+  }
 
-        const response = await sgMail.send(msg);
-        console.log("✅ Email sent via SendGrid:", response[0].statusCode);
-        return response;
+  const msg = {
+    to: toArray,
+    from: {
+      email: SENDGRID_FROM,
+      name: process.env.SENDGRID_FROM_NAME || "Voicy Challenge Bot",
+    },
+    subject,
+    text,
+    html,
+  };
 
-    } catch (error) {
-        console.error("❌ SendGrid Error:", error);
-        if (error.response) {
-            console.error(error.response.body);
-        }
-        throw error;
-    }
+  // sgMail.send returns promise; for multiple recipients it may behave slightly different
+  return sgMail.send(msg);
 };
-
-export default sendEmail;

@@ -1,42 +1,48 @@
-import nodemailer from 'nodemailer';
+// utils/nodemailer.util.js
+import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.NODEMAILER_EMAIL,
-        pass: process.env.NODEMAILER_PASSWORD
-    }
-});
+const GMAIL_USER = process.env.NODEMAILER_EMAIL || process.env.GMAIL_USER;
+const GMAIL_PASS = process.env.NODEMAILER_PASSWORD || process.env.GMAIL_APP_PASSWORD;
 
 /**
- * Sends an email using Nodemailer (Gmail SMTP)
- * @param {string|Array} to - Recipient email(s)
- * @param {string} subject - Email subject
- * @param {string} text - Plain text body
- * @param {string} html - HTML body
- * @returns {Promise}
+ * Create and return a Nodemailer transporter or null if not configured.
  */
-const sendEmail = async (to, subject, text, html) => {
-    try {
-        // If 'to' is an array, join it for the header, or send individually loop depending on preference.
-        // Nodemailer accepts comma-separated string or array of strings.
+export const createGmailTransporter = () => {
+  if (!GMAIL_USER || !GMAIL_PASS) {
+    console.warn("⚠️ Nodemailer Gmail credentials not set (NODEMAILER_EMAIL / NODEMAILER_PASSWORD).");
+    return null;
+  }
 
-        const mailOptions = {
-            from: `"Voicy Challenge Bot" <${process.env.GMAIL_USER}>`,
-            to: Array.isArray(to) ? to.join(', ') : to,
-            subject,
-            text,
-            html,
-        };
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_PASS, // App Password if account has 2FA
+    },
+    // optional: tls: { rejectUnauthorized: false } // not recommended globally
+  });
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log("✅ Email sent via Nodemailer:", info.messageId);
-        return info;
-
-    } catch (error) {
-        console.error("❌ Nodemailer Error:", error);
-        throw error;
-    }
+  return transporter;
 };
 
-export default sendEmail;
+/**
+ * Send using given transporter.
+ * @param {import('nodemailer').Transporter} transporter
+ * @param {string[]} toArray
+ * @param {string} subject
+ * @param {string} text
+ * @param {string} html
+ */
+export const sendViaNodemailer = async (transporter, toArray, subject, text, html) => {
+  if (!transporter) throw new Error("Transporter not provided");
+
+  const mailOptions = {
+    from: `"Voicy Challenge Bot" <${GMAIL_USER}>`,
+    to: toArray.join(", "),
+    subject,
+    text,
+    html,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
